@@ -26,15 +26,16 @@ pub fn main(init: std.process.Init) !void {
     });
 }
 
-const WriteRedGreenGradientArgs = struct {
-    output: *Io.Writer,
-    image_width: u32,
-    image_height: u32,
-};
-fn write_red_green_gradient_ppm(args: WriteRedGreenGradientArgs) !void {
-    const output: *Io.Writer = args.output;
-    const image_width: u32 = args.image_width;
-    const image_height: u32 = args.image_height;
+fn write_red_green_gradient_ppm(
+    args: struct {
+        output: *Io.Writer,
+        image_width: u32,
+        image_height: u32,
+    },
+) !void {
+    const output = args.output;
+    const image_width = args.image_width;
+    const image_height = args.image_height;
     const image_height_f: f64 = @floatFromInt(image_height);
     const image_width_f: f64 = @floatFromInt(image_width);
 
