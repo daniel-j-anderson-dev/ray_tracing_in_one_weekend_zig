@@ -12,20 +12,12 @@ const scalar = struct {
         return lhs + rhs;
     }
 
-    fn multiply(lhs: R) fn (R) R {
-        return struct {
-            pub fn f(rhs: R) R {
-                return lhs * rhs;
-            }
-        }.f;
+    fn multiply(lhs: R, rhs: R) R {
+        return lhs * rhs;
     }
 
-    fn divide(lhs: R) fn (R) R {
-        return struct {
-            pub fn f(rhs: R) R {
-                return lhs / rhs;
-            }
-        }.f;
+    fn divide(lhs: R, rhs: R) R {
+        return lhs / rhs;
     }
 };
 
@@ -51,15 +43,7 @@ pub const R3 = struct {
             .z = binOp(lhs.z, rhs.z),
         };
     }
-
-    pub fn elementWiseMap(self: *const R3, f: fn (f64) f64) R3 {
-        return .{
-            .x = f(self.x),
-            .y = f(self.y),
-            .z = f(self.z),
-        };
-    }
-
+    
     pub fn subtract(lhs: *const R3, rhs: *const R3) R3 {
         return lhs.elementWiseBinaryOperation(rhs, scalar.subtract);
     }
@@ -69,11 +53,19 @@ pub const R3 = struct {
     }
 
     pub fn scalarMultiply(self: *const R3, c: R) R3 {
-        return self.elementWiseMap(scalar.multiply(c));
+        return .{
+            .x = self.x * c,
+            .y = self.y * c,
+            .z = self.z * c,
+        };
     }
 
     pub fn scalarDivide(self: *const R3, c: R) R3 {
-        return self.elementWiseMap(scalar.divide(c));
+        return .{
+            .x = self.x / c,
+            .y = self.y / c,
+            .z = self.z / c,
+        };
     }
 
     pub fn dotProduct(lhs: *const R3, rhs: *const R3) R {
