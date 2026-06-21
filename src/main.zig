@@ -1,6 +1,7 @@
 const std = @import("std");
 const Io = std.Io;
 const maxInt = std.math.maxInt;
+const log = std.log;
 
 const ray_tracing_in_one_weekend = @import("ray_tracing_in_one_weekend");
 
@@ -25,14 +26,16 @@ pub fn main(init: std.process.Init) !void {
     try write_red_green_gradient_ppm(stdout, image_width, image_height);
 }
 
-pub fn write_red_green_gradient_ppm(w: *Io.Writer, image_width: u32, image_height: u32) !void {
-    try w.print("P3\n{d} {d}\n{d}\n", .{ image_width, image_height, maxInt(u8) });
-    try w.flush();
+pub fn write_red_green_gradient_ppm(output: *Io.Writer, image_width: u32, image_height: u32) !void {
+    const image_height_f: f64 = @floatFromInt(image_height);
+    const image_width_f: f64 = @floatFromInt(image_width);
+
+    try output.print("P3\n{d} {d}\n{d}\n", .{ image_width, image_height, maxInt(u8) });
+    try output.flush();
 
     for (0..image_height) |row_index| {
+        log.info("\rScanlines remaining: {d}", .{image_height - row_index});
         for (0..image_width) |column_index| {
-            const image_height_f: f64 = @floatFromInt(image_height);
-            const image_width_f: f64 = @floatFromInt(image_width);
             const row_index_f: f64 = @floatFromInt(row_index);
             const column_index_f: f64 = @floatFromInt(column_index);
 
@@ -45,8 +48,10 @@ pub fn write_red_green_gradient_ppm(w: *Io.Writer, image_width: u32, image_heigh
             const green: u8 = @trunc(scale * percent_green);
             const blue: u8 = @trunc(scale * percent_blue);
 
-            try w.print("{d} {d} {d}\n", .{ red, green, blue });
-            try w.flush();
+            try output.print("{d} {d} {d}\n", .{ red, green, blue });
+            try output.flush();
         }
     }
+    log.info("\rdone ", .{});
+
 }
