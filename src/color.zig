@@ -16,7 +16,7 @@ pub fn Rgb(T: type) type {
             return .{
                 .red = t,
                 .green = t,
-                .blue = t
+                .blue = t,
             };
         }
 
