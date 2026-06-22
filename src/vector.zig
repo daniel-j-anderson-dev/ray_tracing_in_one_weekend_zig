@@ -3,23 +3,6 @@ const Io = std.Io;
 const math = std.math;
 
 pub const R = f64;
-const scalar = struct {
-    fn subtract(lhs: R, rhs: R) R {
-        return lhs - rhs;
-    }
-
-    fn add(lhs: R, rhs: R) R {
-        return lhs + rhs;
-    }
-
-    fn multiply(lhs: R, rhs: R) R {
-        return lhs * rhs;
-    }
-
-    fn divide(lhs: R, rhs: R) R {
-        return lhs / rhs;
-    }
-};
 
 pub const R3 = struct {
     x: R,
@@ -32,24 +15,20 @@ pub const R3 = struct {
     pub const y_hat = R3{ .x = 0, .y = 1, .z = 0 };
     pub const z_hat = R3{ .x = 0, .y = 0, .z = 1 };
 
-    pub fn elementWiseBinaryOperation(
-        lhs: *const R3,
-        rhs: *const R3,
-        binOp: fn (R, R) R,
-    ) R3 {
+    pub fn add(lhs: *const R3, rhs: *const R3) R3 {
         return .{
-            .x = binOp(lhs.x, rhs.x),
-            .y = binOp(lhs.y, rhs.y),
-            .z = binOp(lhs.z, rhs.z),
+            .x = lhs.x + rhs.x,
+            .y = lhs.y + rhs.y,
+            .z = lhs.z + rhs.z,
         };
     }
-    
-    pub fn subtract(lhs: *const R3, rhs: *const R3) R3 {
-        return lhs.elementWiseBinaryOperation(rhs, scalar.subtract);
-    }
 
-    pub fn add(lhs: *const R3, rhs: *const R3) R3 {
-        return lhs.elementWiseBinaryOperation(rhs, scalar.add);
+    pub fn subtract(lhs: *const R3, rhs: *const R3) R3 {
+        return .{
+            .x = lhs.x - rhs.x,
+            .y = lhs.y - rhs.y,
+            .z = lhs.z - rhs.z,
+        };
     }
 
     pub fn scalarMultiply(self: *const R3, c: R) R3 {
@@ -91,27 +70,14 @@ pub const R3 = struct {
     }
 
     pub fn normalize(self: *const R3) error{NormZero}!R3 {
-        return switch (self.norm()) {
-            0 => error.NormZero,
-            else => |n| self.scalarDivide(n),
-        };
+        const n = self.norm();
+        return if (n == 0)
+            error.NormZero
+        else
+            self.scalarDivide(n);
     }
 
     pub fn format(self: *const R3, w: *Io.Writer) Io.Writer.Error!void {
         try w.print("({d}, {d}, {d})", .{ self.x, self.y, self.z });
     }
 };
-
-const testing = std.testing;
-const expect = testing.expect;
-const expectEqual = testing.expectEqual;
-test "a" {
-    std.debug.print("\n\n", .{});
-    const expected = R3.ones;
-    const actual = R3.x_hat.add(&R3.y_hat).add(&R3.z_hat);
-    try expectEqual(expected, actual);
-    try expectEqual(0.0, R3.x_hat.dotProduct(&R3.y_hat));
-    std.debug.print("{f}", .{R3.x_hat});
-    std.debug.print("\n\n", .{});
-    _ = R3;
-}
