@@ -153,7 +153,8 @@ test writeBlueGradient {
     // calculate the location of the top left pixel
     const viewport_top_left = camera_center
         .subtract(&R3.z_hat.scalarMultiply(focal_length))
-        .subtract(&viewport_x.subtract(&viewport_y).scalarDivide(2));
+        .subtract(&viewport_x.scalarDivide(2))
+        .subtract(&viewport_y.scalarDivide(2));
     const top_left_pixel_center = viewport_top_left
         .add(&pixel_delta_x.add(&pixel_delta_y).scalarDivide(2));
 
