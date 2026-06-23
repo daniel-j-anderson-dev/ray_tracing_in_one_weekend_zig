@@ -103,7 +103,10 @@ pub fn normalize(v: anytype) error{NormZero}!ret_ty: {
     break :ret_ty V;
 } {
     const n = vector.norm(v);
-    return if (n == 0) error.NormZero else vector.scalarDivide(v, n);
+    return if (n == 0)
+        error.NormZero
+    else
+        vector.scalarDivide(v, n);
 }
 
 pub fn percentOfInteger(v: anytype, I: type) ret_ty: {
@@ -147,7 +150,7 @@ pub fn writeAsNetpbmColor(
     }
 }
 
-/// A wrapper around `@Vector(n, E)` with functions for construction and common math operations
+/// A wrapper around `@Vector(n, E)` with functions for construction and common math operations from `root.vector`
 pub fn R(n: comptime_int, E: type) type {
     return struct {
         elements: Elements,
