@@ -31,4 +31,3 @@ pub fn save_example(io: Io, example: type) !void {
     try example.write(output, .{});
     try output.flush();
 }
-
