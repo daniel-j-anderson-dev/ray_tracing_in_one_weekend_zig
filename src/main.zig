@@ -8,9 +8,9 @@ const examples = root.examples;
 
 pub fn main(init: std.process.Init) !void {
     const io = init.io;
-    
+
+    var buffer: [1024]u8 = undefined;
     inline for (examples.all) |example| {
-        var buffer: [1024]u8 = undefined;
         var file = try Io.Dir.cwd().createFile(io, example.default.path, .{});
         defer file.close(io);
         var writer = file.writer(io, &buffer);
