@@ -16,6 +16,7 @@ pub const red_green_gradient = struct {
             .image_width = 256,
             .max_value = maxInt(u8),
         };
+        pub const path = "output/red_green_gradient.ppm";
     };
     pub fn pixelColor(
         row_index: usize,
@@ -57,9 +58,8 @@ pub const red_green_gradient = struct {
 };
 test "red_green_gradient.write" {
     const io = std.testing.io;
-    const path = "output/red_green_gradient.ppm";
     var buffer: [1024]u8 = undefined;
-    var file = try Io.Dir.cwd().createFile(io, path, .{});
+    var file = try Io.Dir.cwd().createFile(io, red_green_gradient.default.path, .{});
     defer file.close(io);
     var writer = file.writer(io, &buffer);
     const output = &writer.interface;
@@ -69,6 +69,9 @@ test "red_green_gradient.write" {
 
 pub const blue_gradient = struct {
     const default = struct {
+        // File
+        pub const path = "output/raycast_blue_gradient";
+
         // Image
         pub const ideal_aspect_ratio = 16.0 / 9.0;
         pub const image_width = 400;
@@ -162,9 +165,8 @@ pub const blue_gradient = struct {
 test "blue_gradient.write" {
     // file
     const io = std.testing.io;
-    const path = "output/raycast_blue_gradient.ppm";
     var buffer: [1024]u8 = undefined;
-    var file = try Io.Dir.cwd().createFile(std.testing.io, path, .{});
+    var file = try Io.Dir.cwd().createFile(std.testing.io, blue_gradient.default.path, .{});
     defer file.close(io);
     var writer = file.writer(io, &buffer);
     const output = &writer.interface;
