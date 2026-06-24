@@ -70,7 +70,7 @@ pub fn crossProduct(
     };
 }
 
-pub fn percentOfInteger(v: anytype, I: type) @Vector(Child(@TypeOf(v)), I) {
+pub fn percentOfInteger(v: anytype, I: type) @Vector(len(@TypeOf(v)), I) {
     const V = @TypeOf(v);
     const percent_0: V = @splat(0);
     const percent_100: V = @splat(1);
