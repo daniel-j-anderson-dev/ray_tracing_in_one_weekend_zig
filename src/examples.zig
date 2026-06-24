@@ -1,6 +1,6 @@
 const std = @import("std");
 const Io = std.Io;
-const maxInt = std.math.maxInt;
+const math = std.math;
 
 const root = @import("root.zig");
 const netpbm = root.netpbm;
@@ -14,7 +14,7 @@ pub const red_green_gradient = struct {
             .format_tag = .P6,
             .image_height = 256,
             .image_width = 256,
-            .max_value = maxInt(u8),
+            .max_value = math.maxInt(u8),
         };
         pub const path = "output/red_green_gradient.ppm";
     };
@@ -68,7 +68,7 @@ test "red_green_gradient.write" {
 }
 
 pub const blue_gradient = struct {
-    const default = struct {
+    pub const default = struct {
         // File
         pub const path = "output/raycast_blue_gradient";
 
@@ -108,7 +108,7 @@ pub const blue_gradient = struct {
             .format_tag = .P3,
             .image_height = image_height,
             .image_width = image_width,
-            .max_value = maxInt(u8),
+            .max_value = math.maxInt(u8),
         };
     };
     pub fn rayColor(ray: Ray) Rgb(u8) {
