@@ -83,10 +83,8 @@ test "red_green_gradient.write" {
 
 pub const blue_gradient = struct {
     pub const default = struct {
-        // File
         pub const path = "output/raycast_blue_gradient.ppm";
 
-        // Image
         pub const ideal_aspect_ratio = 16.0 / 9.0;
         pub const image_width = 400;
         pub const image_height = a: {
@@ -95,21 +93,15 @@ pub const blue_gradient = struct {
         };
         pub const actual_aspect_ratio = @as(comptime_float, image_width) / @as(comptime_float, image_height);
 
-        // Camera
         pub const focal_length = 1.0;
         pub const viewport_height = 2.0;
         pub const viewport_width = viewport_height * actual_aspect_ratio;
         pub const camera_center = R3.zero();
 
-        // calculate the vectors across the horizontal and down the vertical viewport edges
         pub const viewport_x = R3.x_basis().scalarMultiply(viewport_width);
         pub const viewport_y = R3.y_basis().scalarMultiply(-viewport_height);
-
-        // calculate the horizontal and vertical delta vectors from pixel to pixel.
         pub const pixel_delta_x = viewport_x.scalarDivide(image_width);
         pub const pixel_delta_y = viewport_y.scalarDivide(image_height);
-
-        // calculate the location of the top left pixel
         pub const viewport_top_left = camera_center
             .subtract(R3.z_basis().scalarMultiply(focal_length))
             .subtract(viewport_x.scalarDivide(2))
