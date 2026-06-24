@@ -7,20 +7,9 @@ const netpbm = root.netpbm;
 const R3 = root.vector.R(3, f64);
 const Rgb = root.color.Rgb;
 const Ray = root.Ray;
+const save = root.save_example;
 
 const examples = @This();
-
-pub const all = a: {
-    const decls = @typeInfo(examples).@"struct".decls;
-    var temp: [decls.len - 1]type = undefined;
-    var i: usize = 0;
-    for (@typeInfo(examples).@"struct".decls) |decl| {
-        if (std.mem.eql(u8, "all", decl.name)) continue;
-        temp[i] = @field(examples, decl.name);
-        i += 1;
-    }
-    break :a temp;
-};
 
 pub const red_green_gradient = struct {
     pub const default = struct {
@@ -70,15 +59,8 @@ pub const red_green_gradient = struct {
         }
     }
 };
-test "red_green_gradient.write" {
-    const io = std.testing.io;
-    var buffer: [1024]u8 = undefined;
-    var file = try Io.Dir.cwd().createFile(io, red_green_gradient.default.path, .{});
-    defer file.close(io);
-    var writer = file.writer(io, &buffer);
-    const output = &writer.interface;
-    try red_green_gradient.write(output, .{});
-    try output.flush();
+test red_green_gradient {
+    try save(std.testing.io, red_green_gradient);
 }
 
 pub const blue_gradient = struct {
@@ -168,14 +150,6 @@ pub const blue_gradient = struct {
         }
     }
 };
-test "blue_gradient.write" {
-    // file
-    const io = std.testing.io;
-    var buffer: [1024]u8 = undefined;
-    var file = try Io.Dir.cwd().createFile(io, blue_gradient.default.path, .{});
-    defer file.close(io);
-    var writer = file.writer(io, &buffer);
-    const output = &writer.interface;
-    try blue_gradient.write(output, .{});
-    try output.flush();
+test blue_gradient {
+    try save(std.testing.io, blue_gradient);
 }
