@@ -124,7 +124,7 @@ pub const blue_gradient = struct {
     }
     pub fn write(
         output: *Io.Writer,
-        config: struct {
+        args: struct {
             header: netpbm.Header = default.header,
             top_left_pixel_center: R3 = default.top_left_pixel_center,
             pixel_delta_x: R3 = default.pixel_delta_x,
@@ -132,13 +132,13 @@ pub const blue_gradient = struct {
             camera_center: R3 = default.camera_center,
         },
     ) !void {
-        const header = config.header;
+        const header = args.header;
         const image_width = header.image_width;
         const image_height = header.image_height;
-        const top_left_pixel_center = config.top_left_pixel_center;
-        const pixel_delta_x = config.pixel_delta_x;
-        const pixel_delta_y = config.pixel_delta_y;
-        const camera_center_ = config.camera_center;
+        const top_left_pixel_center = args.top_left_pixel_center;
+        const pixel_delta_x = args.pixel_delta_x;
+        const pixel_delta_y = args.pixel_delta_y;
+        const camera_center_ = args.camera_center;
 
         try output.print("{f}", .{header});
         try output.flush();
