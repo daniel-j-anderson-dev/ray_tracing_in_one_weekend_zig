@@ -5,11 +5,6 @@ const math = std.math;
 const root = @import("root.zig");
 const vector = @This();
 const netpbm = root.netpbm;
-const staticAssert = root.staticAssert;
-const isFloat = root.isFloat;
-const isInteger = root.isInteger;
-const isVector = root.isVector;
-
 
 // REFLECTION HELPERS //
 
