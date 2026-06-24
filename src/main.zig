@@ -14,10 +14,9 @@ pub fn main(init: std.process.Init) !void {
         var file = try Io.Dir.cwd().createFile(io, example.default.path, .{});
         defer file.close(io);
         var writer = file.writer(io, &buffer);
-        const output = &writer.interface;
 
         std.log.info("generating {s}...", .{example.default.path});
-        try example.write(output, .{});
+        try example.write(&writer.interface, .{});
         std.log.info("Done", .{});
     }
 }
