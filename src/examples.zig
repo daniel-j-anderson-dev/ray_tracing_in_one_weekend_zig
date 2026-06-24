@@ -154,7 +154,8 @@ test "blue_gradient.write" {
         .subtract(viewport_x.scalarDivide(2))
         .subtract(viewport_y.scalarDivide(2));
     const top_left_pixel_center = viewport_top_left
-        .add(pixel_delta_x.add(pixel_delta_y).scalarDivide(2));
+        .add(pixel_delta_x.scalarDivide(2))
+        .add(pixel_delta_y.scalarDivide(2));
 
     // file
     const io = std.testing.io;
