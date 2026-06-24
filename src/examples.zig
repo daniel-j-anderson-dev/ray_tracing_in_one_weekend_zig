@@ -70,7 +70,7 @@ test "red_green_gradient.write" {
 pub const blue_gradient = struct {
     pub const default = struct {
         // File
-        pub const path = "output/raycast_blue_gradient";
+        pub const path = "output/raycast_blue_gradient.ppm";
 
         // Image
         pub const ideal_aspect_ratio = 16.0 / 9.0;
