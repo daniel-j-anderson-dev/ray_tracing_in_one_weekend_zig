@@ -15,7 +15,7 @@ pub fn main(init: std.process.Init) !void {
         defer file.close(io);
         var writer = file.writer(io, &buffer);
 
-        std.log.info("generating {s}...", .{example.default.path});
+        std.log.info("generating {s} ...", .{example.default.path});
         try example.write(&writer.interface, .{});
         std.log.info("Done", .{});
     }
