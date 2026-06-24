@@ -166,7 +166,7 @@ test "blue_gradient.write" {
     // file
     const io = std.testing.io;
     var buffer: [1024]u8 = undefined;
-    var file = try Io.Dir.cwd().createFile(std.testing.io, blue_gradient.default.path, .{});
+    var file = try Io.Dir.cwd().createFile(io, blue_gradient.default.path, .{});
     defer file.close(io);
     var writer = file.writer(io, &buffer);
     const output = &writer.interface;
