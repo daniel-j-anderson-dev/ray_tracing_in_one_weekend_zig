@@ -8,6 +8,20 @@ const R3 = root.vector.R(3, f64);
 const Rgb = root.color.Rgb;
 const Ray = root.Ray;
 
+const examples = @This();
+
+pub const all = a: {
+    const decls = @typeInfo(examples).@"struct".decls;
+    var temp: [decls.len - 1]type = undefined;
+    var i: usize = 0;
+    for (@typeInfo(examples).@"struct".decls) |decl| {
+        if (std.mem.eql(u8, "all", decl.name)) continue;
+        temp[i] = @field(examples, decl.name);
+        i += 1;
+    }
+    break :a temp;
+};
+
 pub const red_green_gradient = struct {
     pub const default = struct {
         pub const header = netpbm.Header{
