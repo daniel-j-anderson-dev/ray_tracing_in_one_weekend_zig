@@ -10,6 +10,9 @@ const isFloat = root.isFloat;
 const isInteger = root.isInteger;
 const isVector = root.isVector;
 
+
+// REFLECTION HELPERS //
+
 pub fn Child(V: type) type {
     return @typeInfo(V).vector.child;
 }
@@ -17,40 +20,37 @@ pub fn len(V: type) comptime_int {
     return @typeInfo(V).vector.len;
 }
 
-pub fn basis(n: comptime_int, E: type, i: usize) @Vector(n, E) {
-    var output: [n]E = @splat(0);
+// CONSTRUCTORS //
+
+pub fn basis(V: type, i: usize) V {
+    var output: [len(V)]Child(V) = @splat(0);
     output[i] = 1;
     return output;
 }
 
+// ARITHMETIC //
+
 pub fn add(lhs: anytype, rhs: anytype) @TypeOf(lhs, rhs) {
     return lhs + rhs;
 }
-
 pub fn subtract(lhs: anytype, rhs: anytype) @TypeOf(lhs, rhs) {
     return lhs - rhs;
 }
-
 pub fn scalarMultiply(v: anytype, c: Child(@TypeOf(v))) @TypeOf(v) {
     return v * @as(@TypeOf(v), @splat(c));
 }
-
 pub fn scalarDivide(v: anytype, c: Child(@TypeOf(v))) @TypeOf(v) {
     return v / @as(@TypeOf(v), @splat(c));
 }
-
 pub fn dotProduct(lhs: anytype, rhs: anytype) Child(@TypeOf(lhs, rhs)) {
     return @reduce(.Add, lhs * rhs);
 }
-
 pub fn normSquared(v: anytype) Child(@TypeOf(v)) {
     return vector.dotProduct(v, v);
 }
-
 pub fn norm(v: anytype) Child(@TypeOf(v)) {
     return @sqrt(vector.normSquared(v));
 }
-
 pub fn normalize(v: anytype) error{NormZero}!@TypeOf(v) {
     const n = vector.norm(v);
     return if (n == 0)
@@ -58,17 +58,16 @@ pub fn normalize(v: anytype) error{NormZero}!@TypeOf(v) {
     else
         vector.scalarDivide(v, n);
 }
-
-pub fn crossProduct(
-    lhs: anytype,
-    rhs: anytype,
-) if (len(@TypeOf(lhs)) == 3) @TypeOf(lhs, rhs) else @compileError("") {
+pub fn crossProduct(lhs: anytype, rhs: anytype) @TypeOf(lhs, rhs) {
+    if (len(@TypeOf(lhs, rhs)) != 3) @compileError("");
     return .{
         lhs[1] * rhs[2] - lhs[2] * rhs[1],
         lhs[2] * rhs[0] - lhs[0] * rhs[2],
         lhs[0] * rhs[1] - lhs[1] * rhs[0],
     };
 }
+
+// COLOR HELPERS //
 
 pub fn percentOfInteger(v: anytype, I: type) @Vector(len(@TypeOf(v)), I) {
     const V = @TypeOf(v);
@@ -78,21 +77,14 @@ pub fn percentOfInteger(v: anytype, I: type) @Vector(len(@TypeOf(v)), I) {
     const clamped: V = math.clamp(v, percent_0, percent_100);
     return @trunc(max * clamped);
 }
-
-pub fn writeAsNetpbmColor(
-    color: anytype,
-    w: *Io.Writer,
-    header: netpbm.Header,
-) !ret_ty: {
-    const Color = @TypeOf(color);
-    staticAssert(isVector(Color));
-    staticAssert(len(Color) >= 3); // reg, green, blue
-    const Channel = Child(Color);
-    staticAssert(isInteger(Channel));
-    break :ret_ty void;
-} {
+pub fn writeAsNetpbmColor(color: anytype, w: *Io.Writer, header: netpbm.Header) !void {
     const Color = @TypeOf(color);
     const Channel = Child(Color);
+    const channel_count = len(Color);
+    const ColorArray = switch (channel_count) {
+        3, 4 => [channel_count]Channel,
+        else => @compileError(""),
+    };
     const encoding = header.format_tag.encoding();
     const upper_channel: Channel = @intCast(header.max_value);
     const lower_channel: Channel = @intCast(0);
@@ -100,7 +92,7 @@ pub fn writeAsNetpbmColor(
     const lower_color: Color = @splat(lower_channel);
     const clamped: Color = math.clamp(color, lower_color, upper_color);
     switch (encoding) {
-        .binary => try w.writeAll(&@as([len(Color)]Channel, clamped)),
+        .binary => try w.writeAll(&@as(ColorArray, clamped)),
         .ascii => try w.print("{d} {d} {d}\n", .{ clamped[0], clamped[1], clamped[2] }),
     }
 }
