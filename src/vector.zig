@@ -1,7 +1,6 @@
 const std = @import("std");
 const Io = std.Io;
 const math = std.math;
-const Child = std.meta.Child;
 
 const root = @import("root.zig");
 const vector = @This();
@@ -11,10 +10,10 @@ const isFloat = root.isFloat;
 const isInteger = root.isInteger;
 const isVector = root.isVector;
 
-pub fn len(V: type) ret_ty: {
-    staticAssert(isVector(V));
-    break :ret_ty comptime_int;
-} {
+pub fn Child(V: type) type {
+    return @typeInfo(V).vector.child;
+}
+pub fn len(V: type) comptime_int {
     return @typeInfo(V).vector.len;
 }
 
@@ -24,84 +23,35 @@ pub fn basis(n: comptime_int, E: type, i: usize) @Vector(n, E) {
     return output;
 }
 
-pub fn add(lhs: anytype, rhs: anytype) ret_ty: {
-    const V = @TypeOf(lhs, rhs);
-    staticAssert(isVector(V));
-    break :ret_ty V;
-} {
+pub fn add(lhs: anytype, rhs: anytype) @TypeOf(lhs, rhs) {
     return lhs + rhs;
 }
 
-pub fn subtract(lhs: anytype, rhs: anytype) ret_ty: {
-    const V = @TypeOf(lhs, rhs);
-    staticAssert(isVector(V));
-    break :ret_ty V;
-} {
+pub fn subtract(lhs: anytype, rhs: anytype) @TypeOf(lhs, rhs) {
     return lhs - rhs;
 }
 
-pub fn scalarMultiply(v: anytype, c: anytype) ret_ty: {
-    const V = @TypeOf(v);
-    const C = @TypeOf(c);
-    staticAssert(isVector(V));
-    staticAssert(C == Child(V));
-    break :ret_ty V;
-} {
+pub fn scalarMultiply(v: anytype, c: Child(@TypeOf(v))) @TypeOf(v) {
     return v * @as(@TypeOf(v), @splat(c));
 }
 
-pub fn scalarDivide(v: anytype, c: anytype) ret_ty: {
-    const V = @TypeOf(v);
-    const C = @TypeOf(c);
-    staticAssert(isVector(V));
-    staticAssert(C == Child(V));
-    break :ret_ty V;
-} {
+pub fn scalarDivide(v: anytype, c: Child(@TypeOf(v))) @TypeOf(v) {
     return v / @as(@TypeOf(v), @splat(c));
 }
 
-pub fn dotProduct(lhs: anytype, rhs: anytype) ret_ty: {
-    const T = @TypeOf(lhs, rhs);
-    staticAssert(isVector(T));
-    break :ret_ty Child(T);
-} {
+pub fn dotProduct(lhs: anytype, rhs: anytype) Child(@TypeOf(lhs, rhs)) {
     return @reduce(.Add, lhs * rhs);
 }
 
-pub fn crossProduct(lhs: anytype, rhs: anytype) ret_ty: {
-    const T = @TypeOf(lhs, rhs);
-    staticAssert(isVector(T));
-    staticAssert(len(T) == 3);
-    break :ret_ty T;
-} {
-    return .{
-        lhs[1] * rhs[2] - lhs[2] * rhs[1],
-        lhs[2] * rhs[0] - lhs[0] * rhs[2],
-        lhs[0] * rhs[1] - lhs[1] * rhs[0],
-    };
-}
-
-pub fn normSquared(v: anytype) ret_ty: {
-    const V = @TypeOf(v);
-    staticAssert(isVector(V));
-    break :ret_ty Child(V);
-} {
+pub fn normSquared(v: anytype) Child(@TypeOf(v)) {
     return vector.dotProduct(v, v);
 }
 
-pub fn norm(v: anytype) ret_ty: {
-    const V = @TypeOf(v);
-    staticAssert(isVector(V));
-    break :ret_ty Child(V);
-} {
+pub fn norm(v: anytype) Child(@TypeOf(v)) {
     return @sqrt(vector.normSquared(v));
 }
 
-pub fn normalize(v: anytype) error{NormZero}!ret_ty: {
-    const V = @TypeOf(v);
-    staticAssert(isVector(V));
-    break :ret_ty V;
-} {
+pub fn normalize(v: anytype) error{NormZero}!@TypeOf(v) {
     const n = vector.norm(v);
     return if (n == 0)
         error.NormZero
@@ -109,18 +59,23 @@ pub fn normalize(v: anytype) error{NormZero}!ret_ty: {
         vector.scalarDivide(v, n);
 }
 
-pub fn percentOfInteger(v: anytype, I: type) ret_ty: {
+pub fn crossProduct(
+    lhs: anytype,
+    rhs: anytype,
+) if (len(@TypeOf(lhs)) == 3) @TypeOf(lhs, rhs) else @compileError("") {
+    return .{
+        lhs[1] * rhs[2] - lhs[2] * rhs[1],
+        lhs[2] * rhs[0] - lhs[0] * rhs[2],
+        lhs[0] * rhs[1] - lhs[1] * rhs[0],
+    };
+}
+
+pub fn percentOfInteger(v: anytype, I: type) @Vector(Child(@TypeOf(v)), I) {
     const V = @TypeOf(v);
-    staticAssert(isVector(V));
-    staticAssert(isFloat(Child(V)));
-    staticAssert(isInteger(I));
-    break :ret_ty @Vector(len(V), I);
-} {
-    const T = @TypeOf(v);
-    const percent_0: T = @splat(0);
-    const percent_100: T = @splat(1);
-    const max: T = @splat(math.maxInt(I));
-    const clamped: T = math.clamp(v, percent_0, percent_100);
+    const percent_0: V = @splat(0);
+    const percent_100: V = @splat(1);
+    const max: V = @splat(math.maxInt(I));
+    const clamped: V = math.clamp(v, percent_0, percent_100);
     return @trunc(max * clamped);
 }
 
@@ -176,22 +131,24 @@ pub fn R(n: comptime_int, E: type) type {
             return new(vector.basis(n, E, i));
         }
         pub fn x_basis() Self {
-            return Self.basis(0);
+            return .basis(0);
         }
         pub fn y_basis() Self {
-            return Self.basis(1);
+            return .basis(1);
         }
         pub fn z_basis() Self {
-            return Self.basis(2);
+            return .basis(2);
+        }
+
+        // CONVERSION //
+        pub fn toArray(self: Self) [n]E {
+            return self.elements;
         }
 
         // GETTERS //
 
-        pub fn get(self: Self, i: anytype) ret_ty: {
-            staticAssert(isInteger(@TypeOf(i)));
-            break :ret_ty E;
-        } {
-            return @as([n]E, self.elements)[i];
+        pub fn get(self: Self, element_index: anytype) E {
+            return self.toArray()[element_index];
         }
         pub fn x(self: Self) E {
             return self.get(0);
@@ -221,10 +178,10 @@ pub fn R(n: comptime_int, E: type) type {
             return new(vector.dotProduct(lhs.elements, rhs.elements));
         }
         pub fn normSquared(self: Self) E {
-            return new(vector.normSquared(self.elements));
+            return vector.normSquared(self.elements);
         }
         pub fn norm(self: Self) E {
-            return new(vector.norm(self.elements));
+            return vector.norm(self.elements);
         }
         pub fn normalize(self: Self) error{NormZero}!Self {
             return new(try vector.normalize(self.elements));
