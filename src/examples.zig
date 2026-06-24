@@ -9,6 +9,14 @@ const Rgb = root.color.Rgb;
 const Ray = root.Ray;
 
 pub const red_green_gradient = struct {
+    pub const default = struct {
+        pub const header = netpbm.Header{
+            .format_tag = .P6,
+            .image_height = 256,
+            .image_width = 256,
+            .max_value = maxInt(u8),
+        };
+    };
     pub fn pixelColor(
         row_index: usize,
         column_index: usize,
@@ -28,14 +36,10 @@ pub const red_green_gradient = struct {
 
         return color.percentOfInteger(u8);
     }
-
     pub fn write(
-        args: struct {
-            output: *Io.Writer,
-            header: netpbm.Header,
-        },
+        output: *Io.Writer,
+        args: struct { header: netpbm.Header = default.header },
     ) !void {
-        const output = args.output;
         const header = args.header;
         const image_width = header.image_width;
         const image_height = header.image_height;
@@ -59,19 +63,51 @@ test "red_green_gradient.write" {
     defer file.close(io);
     var writer = file.writer(io, &buffer);
     const output = &writer.interface;
-    try red_green_gradient.write(.{
-        .output = output,
-        .header = netpbm.Header{
-            .format_tag = .P6,
-            .image_height = 256,
-            .image_width = 256,
-            .max_value = maxInt(u8),
-        },
-    });
+    try red_green_gradient.write(output, .{});
     try output.flush();
 }
 
 pub const blue_gradient = struct {
+    const default = struct {
+        // Image
+        pub const ideal_aspect_ratio = 16.0 / 9.0;
+        pub const image_width = 400;
+        pub const image_height = a: {
+            const h: comptime_int = @as(comptime_float, image_width) / ideal_aspect_ratio;
+            break :a if (h < 1) 1 else h;
+        };
+        pub const actual_aspect_ratio = @as(comptime_float, image_width) / @as(comptime_float, image_height);
+
+        // Camera
+        pub const focal_length = 1.0;
+        pub const viewport_height = 2.0;
+        pub const viewport_width = viewport_height * actual_aspect_ratio;
+        pub const camera_center = R3.zero();
+
+        // calculate the vectors across the horizontal and down the vertical viewport edges
+        pub const viewport_x = R3.x_basis().scalarMultiply(viewport_width);
+        pub const viewport_y = R3.y_basis().scalarMultiply(-viewport_height);
+
+        // calculate the horizontal and vertical delta vectors from pixel to pixel.
+        pub const pixel_delta_x = viewport_x.scalarDivide(image_width);
+        pub const pixel_delta_y = viewport_y.scalarDivide(image_height);
+
+        // calculate the location of the top left pixel
+        pub const viewport_top_left = camera_center
+            .subtract(R3.z_basis().scalarMultiply(focal_length))
+            .subtract(viewport_x.scalarDivide(2))
+            .subtract(viewport_y.scalarDivide(2));
+        pub const top_left_pixel_center = viewport_top_left
+            .add(pixel_delta_x.scalarDivide(2))
+            .add(pixel_delta_y.scalarDivide(2));
+
+        pub const header = netpbm.Header{
+            .format_tag = .P3,
+            .image_height = image_height,
+            .image_width = image_width,
+            .max_value = maxInt(u8),
+        };
+    };
     pub fn rayColor(ray: Ray) Rgb(u8) {
         const direction = ray.direction.normalize() catch R3.zero();
         const a = (direction.y() + 1.0) / 2.0;
@@ -87,23 +123,22 @@ pub const blue_gradient = struct {
         return color.percentOfInteger(u8);
     }
     pub fn write(
-        args: struct {
-            output: *Io.Writer,
-            header: netpbm.Header,
-            top_left_pixel_center: R3,
-            pixel_delta_x: R3,
-            pixel_delta_y: R3,
-            camera_center: R3,
+        output: *Io.Writer,
+        config: struct {
+            header: netpbm.Header = default.header,
+            top_left_pixel_center: R3 = default.top_left_pixel_center,
+            pixel_delta_x: R3 = default.pixel_delta_x,
+            pixel_delta_y: R3 = default.pixel_delta_y,
+            camera_center: R3 = default.camera_center,
         },
     ) !void {
-        const output = args.output;
-        const header = args.header;
+        const header = config.header;
         const image_width = header.image_width;
         const image_height = header.image_height;
-        const top_left_pixel_center = args.top_left_pixel_center;
-        const pixel_delta_x = args.pixel_delta_x;
-        const pixel_delta_y = args.pixel_delta_y;
-        const camera_center = args.camera_center;
+        const top_left_pixel_center = config.top_left_pixel_center;
+        const pixel_delta_x = config.pixel_delta_x;
+        const pixel_delta_y = config.pixel_delta_y;
+        const camera_center_ = config.camera_center;
 
         try output.print("{f}", .{header});
         try output.flush();
@@ -112,7 +147,7 @@ pub const blue_gradient = struct {
                 const pixel_center = top_left_pixel_center
                     .add(pixel_delta_x.scalarMultiply(@floatFromInt(column_index)))
                     .add(pixel_delta_y.scalarMultiply(@floatFromInt(row_index)));
-                const pixel_to_camera = pixel_center.subtract(camera_center);
+                const pixel_to_camera = pixel_center.subtract(camera_center_);
                 const ray = Ray{
                     .origin = pixel_center,
                     .direction = pixel_to_camera,
@@ -125,38 +160,6 @@ pub const blue_gradient = struct {
     }
 };
 test "blue_gradient.write" {
-    // Image
-    const ideal_aspect_ratio = 16.0 / 9.0;
-    const image_width = 400;
-    const image_height = a: {
-        const image_height: comptime_int = @as(comptime_float, image_width) / ideal_aspect_ratio;
-        break :a if (image_height < 1) 1 else image_height;
-    };
-    const actual_aspect_ratio = @as(comptime_float, image_width) / @as(comptime_float, image_height);
-
-    // Camera
-    const focal_length = 1.0;
-    const viewport_height = 2.0;
-    const viewport_width = viewport_height * actual_aspect_ratio;
-    const camera_center = R3.zero();
-
-    // calculate the vectors across the horizontal and down the vertical viewport edges
-    const viewport_x = R3.x_basis().scalarMultiply(viewport_width);
-    const viewport_y = R3.y_basis().scalarMultiply(-viewport_height);
-
-    // calculate the horizontal and vertical delta vectors from pixel to pixel.
-    const pixel_delta_x = viewport_x.scalarDivide(image_width);
-    const pixel_delta_y = viewport_y.scalarDivide(image_height);
-
-    // calculate the location of the top left pixel
-    const viewport_top_left = camera_center
-        .subtract(R3.z_basis().scalarMultiply(focal_length))
-        .subtract(viewport_x.scalarDivide(2))
-        .subtract(viewport_y.scalarDivide(2));
-    const top_left_pixel_center = viewport_top_left
-        .add(pixel_delta_x.scalarDivide(2))
-        .add(pixel_delta_y.scalarDivide(2));
-
     // file
     const io = std.testing.io;
     const path = "output/raycast_blue_gradient.ppm";
@@ -165,18 +168,6 @@ test "blue_gradient.write" {
     defer file.close(io);
     var writer = file.writer(io, &buffer);
     const output = &writer.interface;
-    try blue_gradient.write(.{
-        .output = output,
-        .header = .{
-            .format_tag = .P3,
-            .image_height = image_height,
-            .image_width = image_width,
-            .max_value = maxInt(u8),
-        },
-        .camera_center = camera_center,
-        .top_left_pixel_center = top_left_pixel_center,
-        .pixel_delta_x = pixel_delta_x,
-        .pixel_delta_y = pixel_delta_y,
-    });
+    try blue_gradient.write(output, .{});
     try output.flush();
 }
