@@ -120,7 +120,7 @@ pub fn R(n: comptime_int, E: type) type {
             return splat(1);
         }
         pub fn basis(i: usize) Self {
-            return new(vector.basis(n, E, i));
+            return new(vector.basis(Elements, i));
         }
         pub fn x_basis() Self {
             return .basis(0);
