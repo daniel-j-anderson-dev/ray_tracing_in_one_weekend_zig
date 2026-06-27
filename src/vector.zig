@@ -1,6 +1,7 @@
 const std = @import("std");
 const Io = std.Io;
 const math = std.math;
+const comptimePrint = std.fmt.comptimePrint;
 
 const root = @import("root.zig");
 const vector = @This();
@@ -174,17 +175,6 @@ pub fn R(n: comptime_int, Scalar: type) type {
         }
         pub fn normalize(self: Self) error{NormZero}!Self {
             return new(try vector.normalize(self.elements));
-        }
-        pub inline fn dot(self: Self, rhs: anytype) switch (@TypeOf(rhs)) {
-            Self => Scalar, // dot product
-            Scalar => Self, // scalar product
-            else => @compileError(""),
-        } {
-            switch (@TypeOf(rhs)) {
-                Self => self.dotProduct(rhs),
-                Scalar => self.scalarMultiply(rhs),
-                else => unreachable, // the return type would compile error before here
-            }
         }
 
         // COLOR HELPERS //

@@ -88,12 +88,12 @@ pub const blue_gradient = struct {
         pub const viewport_width = viewport_height * actual_aspect_ratio;
         pub const camera_center = R3.zero();
 
-        pub const viewport_x = R3.x_basis().dot(viewport_width);
-        pub const viewport_y = R3.y_basis().dot(-viewport_height);
+        pub const viewport_x = R3.x_basis().scale(viewport_width);
+        pub const viewport_y = R3.y_basis().scale(-viewport_height);
         pub const pixel_delta_x = viewport_x.scalarDivide(image_width);
         pub const pixel_delta_y = viewport_y.scalarDivide(image_height);
         pub const viewport_top_left = camera_center
-            .subtract(R3.z_basis().dot(focal_length))
+            .subtract(R3.z_basis().scale(focal_length))
             .subtract(viewport_x.scalarDivide(2))
             .subtract(viewport_y.scalarDivide(2));
         pub const top_left_pixel_center = viewport_top_left
@@ -114,10 +114,10 @@ pub const blue_gradient = struct {
         const start = Rgb(R).splat(1.0);
         const end = Rgb(R).new(.{ 0.5, 0.7, 1.0 });
 
-        const dotd_start = start.dot(1 - a);
-        const dotd_end = end.dot(a);
+        const scaled_start = start.scale(1 - a);
+        const scaled_end = end.scale(a);
 
-        const color = dotd_start.add(dotd_end);
+        const color = scaled_start.add(scaled_end);
 
         return color.percentOfInteger(u8);
     }
@@ -129,8 +129,8 @@ pub const blue_gradient = struct {
         top_left_pixel_center: R3,
         camera_center: R3,
     ) Ray {
-        const x_offset = pixel_delta_x.dot(@floatFromInt(column_index));
-        const y_offset = pixel_delta_y.dot(@floatFromInt(row_index));
+        const x_offset = pixel_delta_x.scale(@floatFromInt(column_index));
+        const y_offset = pixel_delta_y.scale(@floatFromInt(row_index));
         const offset = x_offset.add(y_offset);
 
         const pixel_center = top_left_pixel_center.add(offset);
@@ -194,7 +194,7 @@ pub const red_sphere_no_shading = struct {
         pub const top_left_pixel_center = blue_gradient.default.top_left_pixel_center;
         // point3(0,0,-1), 0.5,
         pub const sphere = Sphere{
-            .center = R3.z_basis().dot(-1),
+            .center = R3.z_basis().scalarMultiply(-1),
             .radius = 0.5,
         };
     };
@@ -264,7 +264,7 @@ pub const red_sphere_no_shading = struct {
 
             // quadratic coefficients
             const a = ray.direction.normSquared();
-            const b = 2.0 * ray.direction.dot(offset_center);
+            const b = 2.0 * ray.direction.dotProduct(offset_center);
             const c = offset_center.normSquared() - (sphere.radius * sphere.radius);
 
             const discriminant = (b * b) - (4 * a * c);
