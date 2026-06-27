@@ -109,12 +109,8 @@ pub fn R(n: comptime_int, Scalar: type) type {
         pub fn splat(e: Scalar) Self {
             return new(@splat(e));
         }
-        pub fn zero() Self {
-            return splat(0);
-        }
-        pub fn ones() Self {
-            return splat(1);
-        }
+        pub const zero = splat(0);
+        pub const ones = splat(1);
         pub fn basis(i: usize) Self {
             return new(vector.basis(Elements, i));
         }
