@@ -163,8 +163,8 @@ pub fn R(n: comptime_int, Scalar: type) type {
         pub fn scalarDivide(lhs: Self, rhs: Scalar) Self {
             return new(vector.scalarDivide(lhs.elements, rhs));
         }
-        pub fn dotProduct(lhs: Self, rhs: Self) void {
-            return new(vector.dotProduct(lhs.elements, rhs.elements));
+        pub fn dotProduct(lhs: Self, rhs: Self) Scalar {
+            return vector.dotProduct(lhs.elements, rhs.elements);
         }
         pub fn normSquared(self: Self) Scalar {
             return vector.normSquared(self.elements);
