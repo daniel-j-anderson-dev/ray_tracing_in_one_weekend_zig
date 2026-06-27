@@ -11,14 +11,14 @@ const netpbm = root.netpbm;
 pub fn Child(V: type) type {
     return @typeInfo(V).vector.child;
 }
-pub fn len(V: type) comptime_int {
+pub fn length(V: type) comptime_int {
     return @typeInfo(V).vector.len;
 }
 
 // CONSTRUCTORS //
 
 pub fn basis(V: type, i: usize) V {
-    var output: [len(V)]Child(V) = @splat(0);
+    var output: [length(V)]Child(V) = @splat(0);
     output[i] = 1;
     return output;
 }
@@ -54,7 +54,7 @@ pub fn normalize(v: anytype) error{NormZero}!@TypeOf(v) {
         vector.scalarDivide(v, n);
 }
 pub fn crossProduct(lhs: anytype, rhs: anytype) @TypeOf(lhs, rhs) {
-    if (len(@TypeOf(lhs, rhs)) != 3) @compileError("");
+    if (length(@TypeOf(lhs, rhs)) != 3) @compileError("");
     return .{
         lhs[1] * rhs[2] - lhs[2] * rhs[1],
         lhs[2] * rhs[0] - lhs[0] * rhs[2],
@@ -64,7 +64,7 @@ pub fn crossProduct(lhs: anytype, rhs: anytype) @TypeOf(lhs, rhs) {
 
 // COLOR HELPERS //
 
-pub fn percentOfInteger(v: anytype, I: type) @Vector(len(@TypeOf(v)), I) {
+pub fn percentOfInteger(v: anytype, I: type) @Vector(length(@TypeOf(v)), I) {
     const V = @TypeOf(v);
     const percent_0: V = @splat(0);
     const percent_100: V = @splat(1);
@@ -75,7 +75,7 @@ pub fn percentOfInteger(v: anytype, I: type) @Vector(len(@TypeOf(v)), I) {
 pub fn writeAsNetpbmColor(color: anytype, w: *Io.Writer, header: netpbm.Header) !void {
     const Color = @TypeOf(color);
     const Channel = Child(Color);
-    const channel_count = len(Color);
+    const channel_count = length(Color);
     const ColorArray = switch (channel_count) {
         3, 4 => [channel_count]Channel,
         else => @compileError(""),
@@ -93,19 +93,19 @@ pub fn writeAsNetpbmColor(color: anytype, w: *Io.Writer, header: netpbm.Header) 
 }
 
 /// A wrapper around `@Vector(n, E)` with functions for construction and common math operations from `root.vector`
-pub fn R(n: comptime_int, E: type) type {
+pub fn R(n: comptime_int, Scalar: type) type {
     return struct {
         elements: Elements,
 
         const Self = @This();
-        pub const Elements = @Vector(n, E);
+        pub const Elements = @Vector(n, Scalar);
 
         // CONSTRUCTORS //
 
         pub fn new(elements: Elements) Self {
             return .{ .elements = elements };
         }
-        pub fn splat(e: E) Self {
+        pub fn splat(e: Scalar) Self {
             return new(@splat(e));
         }
         pub fn zero() Self {
@@ -128,22 +128,22 @@ pub fn R(n: comptime_int, E: type) type {
         }
 
         // CONVERSION //
-        pub fn toArray(self: Self) [n]E {
+        pub fn toArray(self: Self) [n]Scalar {
             return self.elements;
         }
 
         // GETTERS //
 
-        pub fn get(self: Self, element_index: anytype) E {
+        pub fn get(self: Self, element_index: anytype) Scalar {
             return self.toArray()[element_index];
         }
-        pub fn x(self: Self) E {
+        pub fn x(self: Self) Scalar {
             return self.get(0);
         }
-        pub fn y(self: Self) E {
+        pub fn y(self: Self) Scalar {
             return self.get(1);
         }
-        pub fn z(self: Self) E {
+        pub fn z(self: Self) Scalar {
             return self.get(2);
         }
 
@@ -152,26 +152,39 @@ pub fn R(n: comptime_int, E: type) type {
         pub fn add(lhs: Self, rhs: Self) Self {
             return new(vector.add(lhs.elements, rhs.elements));
         }
+        pub const translate = Self.add;
         pub fn subtract(lhs: Self, rhs: Self) Self {
             return new(vector.subtract(lhs.elements, rhs.elements));
         }
-        pub fn scalarMultiply(lhs: Self, rhs: E) Self {
+        pub fn scalarMultiply(lhs: Self, rhs: Scalar) Self {
             return new(vector.scalarMultiply(lhs.elements, rhs));
         }
-        pub fn scalarDivide(lhs: Self, rhs: E) Self {
+        pub const scale = Self.scalarMultiply;
+        pub fn scalarDivide(lhs: Self, rhs: Scalar) Self {
             return new(vector.scalarDivide(lhs.elements, rhs));
         }
         pub fn dotProduct(lhs: Self, rhs: Self) void {
             return new(vector.dotProduct(lhs.elements, rhs.elements));
         }
-        pub fn normSquared(self: Self) E {
+        pub fn normSquared(self: Self) Scalar {
             return vector.normSquared(self.elements);
         }
-        pub fn norm(self: Self) E {
+        pub fn norm(self: Self) Scalar {
             return vector.norm(self.elements);
         }
         pub fn normalize(self: Self) error{NormZero}!Self {
             return new(try vector.normalize(self.elements));
+        }
+        pub inline fn dot(self: Self, rhs: anytype) switch (@TypeOf(rhs)) {
+            Self => Scalar, // dot product
+            Scalar => Self, // scalar product
+            else => @compileError(""),
+        } {
+            switch (@TypeOf(rhs)) {
+                Self => self.dotProduct(rhs),
+                Scalar => self.scalarMultiply(rhs),
+                else => unreachable, // the return type would compile error before here
+            }
         }
 
         // COLOR HELPERS //
