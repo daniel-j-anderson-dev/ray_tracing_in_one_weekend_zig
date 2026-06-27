@@ -4,22 +4,27 @@ const math = std.math;
 
 const root = @import("root.zig");
 const netpbm = root.netpbm;
-const R3 = root.vector.R(3, f64);
+const R = f64;
+const R3 = root.vector.R(3, R);
 const Rgb = root.color.Rgb;
 const Ray = root.Ray;
 const save = root.save_example;
 
 const examples = @This();
 
+fn default_path(Example: type) []const u8 {
+    return "output/" ++ @typeName(Example) ++ ".ppm";
+}
+
 pub const red_green_gradient = struct {
     pub const default = struct {
+        pub const path = default_path(@This());
         pub const header = netpbm.Header{
             .format_tag = .P6,
             .image_height = 256,
             .image_width = 256,
             .max_value = math.maxInt(u8),
         };
-        pub const path = "output/red_green_gradient.ppm";
     };
     pub fn pixelColor(
         row_index: usize,
@@ -27,12 +32,12 @@ pub const red_green_gradient = struct {
         image_width: u32,
         image_height: u32,
     ) Rgb(u8) {
-        const image_height_f: f64 = @floatFromInt(image_height);
-        const image_width_f: f64 = @floatFromInt(image_width);
-        const row_index_f: f64 = @floatFromInt(row_index);
-        const column_index_f: f64 = @floatFromInt(column_index);
+        const image_height_f: R = @floatFromInt(image_height);
+        const image_width_f: R = @floatFromInt(image_width);
+        const row_index_f: R = @floatFromInt(row_index);
+        const column_index_f: R = @floatFromInt(column_index);
 
-        const color = Rgb(f64).new(.{
+        const color = Rgb(R).new(.{
             column_index_f / (image_width_f - 1),
             row_index_f / (image_height_f - 1),
             0,
@@ -65,7 +70,7 @@ test red_green_gradient {
 
 pub const blue_gradient = struct {
     pub const default = struct {
-        pub const path = "output/raycast_blue_gradient.ppm";
+        pub const path = default_path(@This());
 
         pub const ideal_aspect_ratio = 16.0 / 9.0;
         pub const image_width = 400;
@@ -103,8 +108,8 @@ pub const blue_gradient = struct {
         const direction = ray.direction.normalize() catch R3.zero();
         const a = (direction.y() + 1.0) / 2.0;
 
-        const start = Rgb(f64).splat(1.0);
-        const end = Rgb(f64).new(.{ 0.5, 0.7, 1.0 });
+        const start = Rgb(R).splat(1.0);
+        const end = Rgb(R).new(.{ 0.5, 0.7, 1.0 });
 
         const scaled_start = start.scalarMultiply(1 - a);
         const scaled_end = end.scalarMultiply(a);
@@ -129,7 +134,7 @@ pub const blue_gradient = struct {
         const top_left_pixel_center = args.top_left_pixel_center;
         const pixel_delta_x = args.pixel_delta_x;
         const pixel_delta_y = args.pixel_delta_y;
-        const camera_center_ = args.camera_center;
+        const camera_center = args.camera_center;
 
         try output.print("{f}", .{header});
         try output.flush();
@@ -138,12 +143,16 @@ pub const blue_gradient = struct {
                 const pixel_center = top_left_pixel_center
                     .add(pixel_delta_x.scalarMultiply(@floatFromInt(column_index)))
                     .add(pixel_delta_y.scalarMultiply(@floatFromInt(row_index)));
-                const pixel_to_camera = pixel_center.subtract(camera_center_);
+
+                const pixel_to_camera = pixel_center.subtract(camera_center);
+
                 const ray = Ray{
                     .origin = pixel_center,
                     .direction = pixel_to_camera,
                 };
+
                 const color = rayColor(ray);
+                
                 try color.writeAsNetpbmColor(output, header);
                 try output.flush();
             }
@@ -153,3 +162,99 @@ pub const blue_gradient = struct {
 test blue_gradient {
     try save(std.testing.io, blue_gradient);
 }
+
+pub const red_sphere_no_shading = struct {
+    pub const default = struct {
+        pub const path = default_path(@This());
+        pub const header = blue_gradient.default.header;
+        pub const camera_center = blue_gradient.default.camera_center;
+        pub const pixel_delta_x = blue_gradient.default.pixel_delta_x;
+        pub const pixel_delta_y = blue_gradient.default.pixel_delta_y;
+        pub const top_left_pixel_center = blue_gradient.default.top_left_pixel_center;
+    };
+    pub const Sphere = struct {
+        radius: R,
+        center: R3,
+
+        pub const RayCollision = enum { secant, tangent };
+
+        /// the expression `vⁿ` means dot product of `v` with itself `n` times
+        /// ```text
+        /// vⁿ ≔ |v·v· ⋯ ·v|
+        ///      +---------+
+        ///          |
+        ///      n times
+        /// ```
+        ///
+        /// Sphere equation
+        /// ```text
+        /// (C - P)² = r²
+        /// C is the center point of the sphere
+        /// P is an arbitrary point in space
+        /// r is the radius of sphere
+        /// ```
+        /// - if `(C - P)² = r²`
+        ///   - then `P` is considered on the surface of the sphere
+        ///
+        /// Ray equation
+        /// ```text
+        /// P(t) = Q + t·d̂
+        /// d̂ is the direction of the ray
+        /// Q is the origin of the ray
+        /// P(t) is a specific point along the ray
+        /// ```
+        ///
+        /// we want to determine a ray intersects with a sphere. <br/>
+        /// we want to find all solutions for t where this equation is true
+        /// ```text
+        ///   (C - P(t))²                                 = r²
+        /// ⇒ (C - ( Q + t·d̂))²                           = r² `substitute: P(t) = Q + d̂·t`
+        /// ⇒ (C + (-Q + -t·d̂))²                          = r² `distribute -1`
+        /// ⇒ (C +  -Q + -t·d̂)²                           = r² `remove parentheses ∵ addition is vector associative`
+        /// ⇒ (C + -Q + -t·d̂)·(C + -Q + -t·d̂)             = r² `expand norm squared`
+        /// ⇒ (-t·d̂ + (C - Q))·(-t·d̂ + (C - Q))           = r² `regroup by t ∵ addition is vector associative and commutative`
+        /// ⇒ t²·d̂² - t·2·d̂·(C - Q) + (C - Q)²            = r² `foil the dot product`
+        /// ⇒ t²·d̂² - t·2·d̂·(C - Q) + (C - Q)² - r²       = 0  `move r² to the left side`
+        /// ⇒ t²·d̂² - t¹·2·d̂·(C - Q) + t⁰·((C - Q)² - r²) = 0  `put polynomial in normal form`
+        /// ⇒ (-b ± √(4·a·c)) / 2·a                       = t  `use quadratic formula to solve for t`
+        ///   a = d̂²
+        ///   b = 2·d̂·(C - Q)
+        ///   c = (C - Q)² - r²
+        /// ⇒ (-(2·d̂·(C - Q)) ± √(4·d̂²·((C - Q)² - r²)) / 2·d̂² = t
+        /// ```
+        /// - if there are two real solutions to `t`
+        ///   - then the ray intersects the sphere twice
+        /// - if there is one real solution to `t`
+        ///   - then the ray intersects the sphere once
+        /// - if there are no real solution to `t`
+        ///   - then the ray does not intersect the sphere
+        ///
+        /// The discriminant of the quadratic formula is the part under the radical (`4·a·c`).
+        /// - if the discriminant is positive (`4·a·c > 0`)
+        ///   - then there are two real solutions
+        /// - if the discriminant is zero (`4·a·c = 0`)
+        ///   - then there is one real solution
+        /// - if the discriminant is negative (`4·a·c < 0`)
+        ///   - then there are no real solutions
+        ///
+        /// ![](https://raytracing.github.io/images/fig-1.05-ray-sphere.jpg)
+        pub fn rayCollision(sphere: Sphere, ray: Ray) ?Sphere.RayCollision {
+            // move the center of the sphere to the origin of the ray.
+            // C - Q
+            const offset_center = sphere.center.subtract(ray.origin);
+
+            // quadratic coefficients
+            const a = ray.direction.normSquared();
+            const b = 2.0 * ray.direction.dotProduct(offset_center);
+            const c = offset_center.normSquared() - (sphere.radius * sphere.radius);
+
+            const discriminant = (b * b) - (4 * a * c);
+            return switch (math.sign(discriminant)) {
+                -1 => null,
+                0 => .tangent,
+                1 => .secant,
+                else => unreachable, // math.sign returns -1, 0, 1
+            };
+        }
+    };
+};
